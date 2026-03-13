@@ -1,9 +1,7 @@
-<img src="projecc/logo/black-transp.png" alt="logo" width="200"/>
+<img src="logo/black-transp.png" alt="logo" width="200"/>
 
 # projecc
 A small simple package for projecting orbital elements onto sky plane and vice versa.
-
-
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15830011.svg)](https://doi.org/10.5281/zenodo.15830011)
 
@@ -18,7 +16,7 @@ On the package index: <a href="https://pypi.org/project/projecc/">projecc</a>
 
 ## Tutorials
 
-See the <a href="https://github.com/logan-pearce/projecc/blob/main/projecc/UsingProjecc.ipynb">Using Projecc notebook</a> for descriptions, definitions, and examples.
+See the [Using Projecc notebook](notebooks/UsingProjecc.ipynb) for descriptions, definitions, and examples.
 
 ## Change log
 
