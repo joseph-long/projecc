@@ -16,20 +16,29 @@ where NAME is a Simbad-resolvable name of object.
 
 """
 import argparse
+from importlib.resources import files
 
-parser = argparse.ArgumentParser(description='Process some integers.')
-parser.add_argument('SimbadNAME', metavar='N',
-                    help='Simbad Resolvable Object Name')
-
-
-args = parser.parse_args()
-name = args.SimbadNAME
-
-from astropy import units as u
-from astropy import constants as const
-import numpy as np
-from astropy.io import ascii
 import matplotlib.pyplot as plt
+import numpy as np
+from astroquery.vizier import Vizier
+from astropy import constants as const
+from astropy import units as u
+from astropy.io import ascii
+
+
+def parse_args(argv=None):
+    parser = argparse.ArgumentParser(
+        description=(
+            "Query Kervella 2022 PMa table for a target and generate "
+            "a companion-mass sensitivity curve."
+        )
+    )
+    parser.add_argument(
+        "SimbadNAME",
+        metavar="N",
+        help="Simbad-resolvable object name",
+    )
+    return parser.parse_args(argv)
 
 # Time window smearing efficiency function
 def gamfunc(P):
@@ -50,7 +59,8 @@ def mBr_function(starmass, dvel_norm, dvel_norm_err,\
     # dtGaia = (Time('2017-05-28T08:44:00',format='isot')-Time('2014-07-25T10:30:00', format='isot'))
     #        = 1037.93 days
 
-    zeta = ascii.read('zeta-values.csv')
+    zeta_path = files("projecc").joinpath("zeta-values.csv")
+    zeta = ascii.read(str(zeta_path))
     minAU = 0.5
     maxAU = 200
     nval = 500
@@ -69,32 +79,49 @@ def mBr_function(starmass, dvel_norm, dvel_norm_err,\
 
     return r, mBr, mBrmin, mBrmax
 
-#================================================================================
-# Sensitivity function in terms of companion mass
-# as a function of the tangential velocity anomaly
-# Example for a 1 Msun star with a 5.0 +/- 0.3 m/s tangential velocity anomaly
-#================================================================================
-from astroquery.vizier import Vizier
-cat = 'J/A+A/657/A7/tablea1'
-r = Vizier.query_object(name, catalog=cat)
-r = r[0]
-if len(r) == 0:
-    print('Object not in Kervella 2022 catalog')
-    exit()
+def main(argv=None):
+    args = parse_args(argv)
+    name = args.SimbadNAME
 
-starmass, dvel_norm, dvel_norm_err = r['M1'][0]*u.Msun, r['dVt'][0]*u.m/u.s, r['e_dVt'][0]*u.m/u.s
-r, mBr, mBrmin, mBrmax = mBr_function(starmass, dvel_norm, dvel_norm_err)
+    # Sensitivity function in terms of companion mass as a function of
+    # tangential velocity anomaly from Kervella et al. 2022.
+    cat = "J/A+A/657/A7/tablea1"
+    result = Vizier.query_object(name, catalog=cat)
+    table = result[0]
+    if len(table) == 0:
+        print("Object not in Kervella 2022 catalog")
+        return 1
 
-#plt.close('all')
-fig, ax1 = plt.subplots(1, 1,figsize=(8,6))
-ax1.set_title(r'PMa sensitivity %.1f $M_\odot$ star and $dV_\mathrm{tan} = %.2f \pm %.2f$ m/s'%(starmass.to(u.Msun).value,\
-                                                                                        dvel_norm.to(u.m/u.s).value,\
-                                                                                        dvel_norm_err.to(u.m/u.s).value))
-ax1.set_xlabel(r'Orbital radius (au)')
-ax1.set_ylabel(r'$m_2\,(M_\mathrm{Jup})$')
-ax1.grid()
-ax1.set_yscale('log')
-ax1.set_xscale('log')
-ax1.plot(r,mBr.to(u.Mjup).value,label=r'$m_2$ EDR3 PMa',color='forestgreen')
-ax1.fill_between(r.to(u.AU).value,mBrmin.to(u.Mjup).value,mBrmax.to(u.Mjup).value, facecolor='limegreen', alpha=0.2)
-fig.savefig('Kervella-plot-'+name.replace(' ','')+'.png')
+    starmass = table["M1"][0] * u.Msun
+    dvel_norm = table["dVt"][0] * u.m / u.s
+    dvel_norm_err = table["e_dVt"][0] * u.m / u.s
+    radius, mBr, mBrmin, mBrmax = mBr_function(starmass, dvel_norm, dvel_norm_err)
+
+    fig, ax1 = plt.subplots(1, 1, figsize=(8, 6))
+    ax1.set_title(
+        r"PMa sensitivity %.1f $M_\odot$ star and $dV_\mathrm{tan} = %.2f \pm %.2f$ m/s"
+        % (
+            starmass.to(u.Msun).value,
+            dvel_norm.to(u.m / u.s).value,
+            dvel_norm_err.to(u.m / u.s).value,
+        )
+    )
+    ax1.set_xlabel(r"Orbital radius (au)")
+    ax1.set_ylabel(r"$m_2\,(M_\mathrm{Jup})$")
+    ax1.grid()
+    ax1.set_yscale("log")
+    ax1.set_xscale("log")
+    ax1.plot(radius, mBr.to(u.Mjup).value, label=r"$m_2$ EDR3 PMa", color="forestgreen")
+    ax1.fill_between(
+        radius.to(u.AU).value,
+        mBrmin.to(u.Mjup).value,
+        mBrmax.to(u.Mjup).value,
+        facecolor="limegreen",
+        alpha=0.2,
+    )
+    fig.savefig("Kervella-plot-" + name.replace(" ", "") + ".png")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

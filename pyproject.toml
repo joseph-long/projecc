@@ -15,11 +15,18 @@ authors = [
 dependencies = [
   "numpy",
   "astropy",
+  "astroquery",
 ]
 urls = { Homepage = "https://github.com/logan-pearce/projecc" }
 
+[project.scripts]
+pma-sensitivity = "projecc.PMa_sensitivity:main"
+
 [tool.setuptools]
 include-package-data = true
+
+[tool.setuptools.package-data]
+projecc = ["zeta-values.csv"]
 
 [tool.setuptools.packages.find]
 include = ["projecc*"]
